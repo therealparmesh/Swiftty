@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & release
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Verify release secrets
+        env:
+          CERT_P12: ${{ secrets.CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+          SIGN_IDENTITY: ${{ secrets.SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          missing=0
+          for name in CERT_P12 CERT_PASSWORD SIGN_IDENTITY APPLE_ID TEAM_ID APP_PASSWORD SPARKLE_ED_PRIVATE_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub Actions secret: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Import signing certificate
+        id: signing
+        env:
+          CERT_P12: ${{ secrets.CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+          SIGN_IDENTITY: ${{ secrets.SIGN_IDENTITY }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PW="$(uuidgen)"
+          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PW" "$KEYCHAIN"
+          EXISTING=()
+          while IFS= read -r kc; do
+            kc="${kc//\"/}"; kc="${kc//[[:space:]]/}"
+            [[ -n "$kc" ]] && EXISTING+=("$kc")
+          done < <(security list-keychains -d user)
+          security list-keychains -d user -s "$KEYCHAIN" "${EXISTING[@]}"
+          rm "$RUNNER_TEMP/cert.p12"
+          echo "identity=${SIGN_IDENTITY}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate app icon
+        run: ./Scripts/make-icon.sh
+
+      - name: Build, bundle & sign
+        run: |
+          ./Scripts/bundle.sh \
+            --config release \
+            --version "${GITHUB_REF_NAME#v}" \
+            --build "${GITHUB_REF_NAME#v}" \
+            --sign "${{ steps.signing.outputs.identity }}" \
+            --zip
+
+      - name: Notarize & staple
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+        run: |
+          /usr/bin/ditto -c -k --keepParent dist/Swiftty.app dist/notarize-upload.zip
+          xcrun notarytool submit dist/notarize-upload.zip \
+            --apple-id "$APPLE_ID" \
+            --team-id "$TEAM_ID" \
+            --password "$APP_PASSWORD" \
+            --wait
+          xcrun stapler staple dist/Swiftty.app
+          spctl --assess --type execute --verbose=2 dist/Swiftty.app
+          rm -f dist/notarize-upload.zip
+          rm -f dist/Swiftty.zip
+          /usr/bin/ditto -c -k --keepParent dist/Swiftty.app dist/Swiftty.zip
+
+      - name: Generate Sparkle appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          GEN="$(find .build -type f -name generate_appcast -path '*[Ss]parkle*' | head -1)"
+          if [ -z "$GEN" ]; then
+            echo "::error::Sparkle generate_appcast tool was not found"
+            exit 1
+          fi
+          STAGE="$(mktemp -d)"
+          cp dist/Swiftty.zip "$STAGE/"
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | "$GEN" \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/therealparmesh/Swiftty/releases/download/${GITHUB_REF_NAME}/" \
+            --link "https://github.com/therealparmesh/Swiftty/releases/tag/${GITHUB_REF_NAME}" \
+            -o dist/appcast.xml \
+            "$STAGE"
+          rm -rf "$STAGE"
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            dist/Swiftty.zip
+            dist/appcast.xml
+          generate_release_notes: true
+          fail_on_unmatched_files: true

@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & bundle
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Show toolchain
+        run: swift --version
+
+      - name: Build & bundle the app
+        run: |
+          ./Scripts/make-icon.sh --force
+          ./Scripts/bundle.sh --config release
+
+      - name: Verify code signature
+        run: codesign --verify --strict --verbose=2 dist/Swiftty.app

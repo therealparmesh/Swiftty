@@ -1,0 +1,5 @@
+included:
+  - Sources
+
+strict: true
+reporter: xcode

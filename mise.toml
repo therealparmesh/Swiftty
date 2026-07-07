@@ -1,0 +1,45 @@
+[tools]
+swiftlint = "latest"
+
+# --- Develop -----------------------------------------------------------------
+
+[tasks.build]
+description = "Debug build"
+run = "swift build"
+
+[tasks.run]
+description = "Build and run the bundled app"
+run = """
+set -euo pipefail
+pkill -x Swiftty 2>/dev/null || true
+./Scripts/make-icon.sh
+./Scripts/bundle.sh --config debug
+open -n dist/Swiftty.app
+"""
+
+# --- Quality -----------------------------------------------------------------
+
+[tasks.lint]
+description = "Run SwiftLint (strict)"
+run = "swiftlint lint --strict"
+
+# --- Package -----------------------------------------------------------------
+
+[tasks.release-build]
+description = "Release build"
+run = "swift build --configuration release"
+
+[tasks.icon]
+description = "Generate Resources/AppIcon.icns"
+run = "./Scripts/make-icon.sh --force"
+
+[tasks.app]
+description = "Assemble dist/Swiftty.app (ad-hoc signed)"
+depends = ["icon"]
+run = "./Scripts/bundle.sh --config release"
+
+# --- Maintenance -------------------------------------------------------------
+
+[tasks.clean]
+description = "Remove build and dist artifacts"
+run = "swift package clean && rm -rf .build dist Resources/AppIcon.icns"

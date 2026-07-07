@@ -1,0 +1,14 @@
+.build/
+.swiftpm/
+Package.pins
+dist/
+/Resources/AppIcon.icns
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+.DS_Store
+*.swp
+.vscode/
+.idea/
+SETUP_SECRETS.md
