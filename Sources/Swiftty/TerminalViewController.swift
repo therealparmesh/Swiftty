@@ -5,6 +5,61 @@ import SwiftTerm
 protocol TerminalEventSink: AnyObject {
   func terminalDidRingBell()
   func terminalDidRequestSettings()
+  func terminalDidRequestFontSizeAdjustment(_ delta: CGFloat)
+  func terminalDidRequestFontSizeReset()
+}
+
+enum TerminalKeyCommand: Equatable {
+  case copy
+  case paste
+  case selectAll
+  case clearBuffer
+  case resetSession
+  case openSettings
+  case increaseFontSize
+  case decreaseFontSize
+  case resetFontSize
+
+  private static let commandShortcuts: [String: TerminalKeyCommand] = [
+    "v": .paste,
+    "a": .selectAll,
+    "k": .clearBuffer,
+    ",": .openSettings,
+    "+": .increaseFontSize,
+    "=": .increaseFontSize,
+    "-": .decreaseFontSize,
+    "0": .resetFontSize
+  ]
+
+  private static let shiftedCommandShortcuts: [String: TerminalKeyCommand] = [
+    "r": .resetSession,
+    "+": .increaseFontSize,
+    "=": .increaseFontSize,
+    "_": .decreaseFontSize,
+    "-": .decreaseFontSize
+  ]
+
+  static func resolve(
+    key: String?,
+    modifiers: NSEvent.ModifierFlags,
+    selectionActive: Bool
+  ) -> TerminalKeyCommand? {
+    let key = key?.lowercased()
+    let modifiers = modifiers.intersection([.command, .option, .control, .shift])
+
+    guard let key else { return nil }
+
+    if modifiers == [.command] {
+      if key == "c" { return selectionActive ? .copy : nil }
+      return commandShortcuts[key]
+    }
+
+    if modifiers == [.command, .shift] {
+      return shiftedCommandShortcuts[key]
+    }
+
+    return nil
+  }
 }
 
 final class SwifttyTerminalView: LocalProcessTerminalView {
@@ -14,6 +69,8 @@ final class SwifttyTerminalView: LocalProcessTerminalView {
   var onClearBuffer: (() -> Void)?
   var onResetSession: (() -> Void)?
   var onOpenSettings: (() -> Void)?
+  var onAdjustFontSize: ((CGFloat) -> Void)?
+  var onResetFontSize: (() -> Void)?
 
   override func bell(source: Terminal) {
     super.bell(source: source)
@@ -44,33 +101,23 @@ final class SwifttyTerminalView: LocalProcessTerminalView {
   // MARK: - Key equivalents
 
   override func performKeyEquivalent(with event: NSEvent) -> Bool {
-    let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-    let key = event.charactersIgnoringModifiers?.lowercased()
-
-    if mods == [.command] {
-      switch key {
-      case "c" where selectionActive:
-        copy(nil)
-        return true
-      case "v":
-        paste(nil)
-        return true
-      case "a":
-        selectAll(nil)
-        return true
-      case "k":
-        onClearBuffer?()
-        return true
-      case ",":
-        onOpenSettings?()
-        return true
-      default: break
-      }
-    } else if mods == [.command, .shift], key == "r" {
-      onResetSession?()
-      return true
+    let command = TerminalKeyCommand.resolve(
+      key: event.charactersIgnoringModifiers,
+      modifiers: event.modifierFlags,
+      selectionActive: selectionActive)
+    switch command {
+    case .copy: copy(nil)
+    case .paste: paste(nil)
+    case .selectAll: selectAll(nil)
+    case .clearBuffer: onClearBuffer?()
+    case .resetSession: onResetSession?()
+    case .openSettings: onOpenSettings?()
+    case .increaseFontSize: onAdjustFontSize?(1)
+    case .decreaseFontSize: onAdjustFontSize?(-1)
+    case .resetFontSize: onResetFontSize?()
+    case nil: return super.performKeyEquivalent(with: event)
     }
-    return super.performKeyEquivalent(with: event)
+    return true
   }
 
   // MARK: - Context menu
@@ -110,11 +157,34 @@ final class SwifttyTerminalView: LocalProcessTerminalView {
     resetItem.target = self
     menu.addItem(resetItem)
 
+    menu.addItem(.separator())
+
+    let increaseFontItem = NSMenuItem(
+      title: "Increase Font Size", action: #selector(menuIncreaseFontSize),
+      keyEquivalent: "+")
+    increaseFontItem.target = self
+    menu.addItem(increaseFontItem)
+
+    let decreaseFontItem = NSMenuItem(
+      title: "Decrease Font Size", action: #selector(menuDecreaseFontSize),
+      keyEquivalent: "-")
+    decreaseFontItem.target = self
+    menu.addItem(decreaseFontItem)
+
+    let resetFontItem = NSMenuItem(
+      title: "Reset Font Size", action: #selector(menuResetFontSize),
+      keyEquivalent: "0")
+    resetFontItem.target = self
+    menu.addItem(resetFontItem)
+
     return menu
   }
 
   @objc private func menuClearBuffer() { onClearBuffer?() }
   @objc private func menuResetSession() { onResetSession?() }
+  @objc private func menuIncreaseFontSize() { onAdjustFontSize?(1) }
+  @objc private func menuDecreaseFontSize() { onAdjustFontSize?(-1) }
+  @objc private func menuResetFontSize() { onResetFontSize?() }
 }
 
 final class TerminalViewController: NSViewController {
@@ -156,6 +226,12 @@ final class TerminalViewController: NSViewController {
     term.onClearBuffer = { [weak self] in self?.clearBuffer() }
     term.onResetSession = { [weak self] in self?.resetSession() }
     term.onOpenSettings = { [weak self] in self?.eventSink?.terminalDidRequestSettings() }
+    term.onAdjustFontSize = { [weak self] delta in
+      self?.eventSink?.terminalDidRequestFontSizeAdjustment(delta)
+    }
+    term.onResetFontSize = { [weak self] in
+      self?.eventSink?.terminalDidRequestFontSizeReset()
+    }
 
     view.addSubview(term)
     NSLayoutConstraint.activate([

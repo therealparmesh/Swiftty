@@ -26,6 +26,8 @@ The default global shortcut is `Control` + `Shift` + `` ` ``.
 | `Command` + `A` | Select all |
 | `Command` + `K` | Clear buffer |
 | `Command` + `Shift` + `R` | Reset session |
+| `Command` + `+` / `Command` + `-` | Increase / decrease font size |
+| `Command` + `0` | Reset font size |
 | `Command` + `,` | Open Settings |
 
 Right-click the menu bar icon for Settings, updates, and Quit.
@@ -33,8 +35,8 @@ Right-click the menu bar icon for Settings, updates, and Quit.
 ## Build
 
 ```sh
-./Scripts/make-icon.sh --force
-./Scripts/bundle.sh --config release
+./script/make-icon.sh --force
+./script/bundle.sh --config release
 open dist/Swiftty.app
 ```
 
@@ -49,8 +51,8 @@ swift build
 Releases are cut from tags:
 
 ```sh
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.1
+git push origin v1.0.1
 ```
 
 The GitHub release workflow builds the app, signs it with Developer ID,

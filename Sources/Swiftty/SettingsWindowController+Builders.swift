@@ -32,6 +32,38 @@ extension SettingsWindowController {
     return row
   }
 
+  func fontSizeRow(
+    _ decreaseButton: NSButton,
+    _ slider: NSSlider,
+    _ increaseButton: NSButton,
+    _ valueLabel: NSTextField
+  ) -> NSView {
+    let row = NSStackView(views: [decreaseButton, slider, increaseButton, valueLabel])
+    row.orientation = .horizontal
+    row.spacing = 8
+    row.translatesAutoresizingMaskIntoConstraints = false
+    valueLabel.widthAnchor.constraint(equalToConstant: 52).isActive = true
+    slider.setContentHuggingPriority(.defaultLow, for: .horizontal)
+    return row
+  }
+
+  func configureFontSizeButton(
+    _ button: NSButton,
+    symbol: String,
+    label: String,
+    action: Selector
+  ) {
+    button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
+    button.imagePosition = .imageOnly
+    button.bezelStyle = .rounded
+    button.target = self
+    button.action = action
+    button.toolTip = label
+    button.setAccessibilityLabel(label)
+    button.translatesAutoresizingMaskIntoConstraints = false
+    button.widthAnchor.constraint(equalToConstant: 28).isActive = true
+  }
+
   func configureSlider(_ slider: NSSlider, min: CGFloat, max: CGFloat, action: Selector) {
     slider.minValue = Double(min)
     slider.maxValue = Double(max)

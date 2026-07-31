@@ -24,10 +24,13 @@ jobs:
       - name: Show toolchain
         run: swift --version
 
+      - name: Run tests
+        run: swift test
+
       - name: Build & bundle the app
         run: |
-          ./Scripts/make-icon.sh --force
-          ./Scripts/bundle.sh --config release
+          ./script/make-icon.sh --force
+          ./script/bundle.sh --config release
 
       - name: Verify code signature
         run: codesign --verify --strict --verbose=2 dist/Swiftty.app

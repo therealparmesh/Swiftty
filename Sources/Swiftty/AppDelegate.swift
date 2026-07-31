@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
   }
 
   func applicationDidFinishLaunching(_ notification: Notification) {
+    setUpMainMenu()
     setUpStatusItem()
     setUpWindow()
     registerHotKey()
@@ -40,12 +41,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
     if Updater.isSupported { updater = Updater() }
   }
 
+  private func setUpMainMenu() {
+    let mainMenu = NSMenu()
+
+    let appMenuItem = NSMenuItem()
+    let appMenu = NSMenu()
+    appMenu.addItem(menuItem("Settings...", #selector(openSettings), key: ","))
+    appMenu.addItem(.separator())
+    appMenu.addItem(
+      NSMenuItem(
+        title: "Quit Swiftty",
+        action: #selector(NSApplication.terminate(_:)),
+        keyEquivalent: "q"))
+    appMenuItem.submenu = appMenu
+    mainMenu.addItem(appMenuItem)
+
+    let viewMenuItem = NSMenuItem()
+    let viewMenu = NSMenu(title: "View")
+    viewMenu.addItem(menuItem("Increase Font Size", #selector(increaseFontSize), key: "+"))
+    viewMenu.addItem(menuItem("Decrease Font Size", #selector(decreaseFontSize), key: "-"))
+    viewMenu.addItem(menuItem("Reset Font Size", #selector(resetFontSize), key: "0"))
+    viewMenuItem.submenu = viewMenu
+    mainMenu.addItem(viewMenuItem)
+
+    NSApp.mainMenu = mainMenu
+  }
+
   func applicationWillTerminate(_ notification: Notification) {
     if let monitor = globalClickMonitor { NSEvent.removeMonitor(monitor) }
     for observer in [resignObserver, screenObserver, prefsObserver].compactMap({ $0 }) {
       NotificationCenter.default.removeObserver(observer)
     }
   }
+}
+
+// MARK: - Menus, window, and preferences
+
+extension AppDelegate {
 
   // MARK: - Status bar
 
@@ -101,6 +133,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
 
   @objc private func menuToggle() { toggle() }
   @objc private func checkForUpdates() { updater?.checkForUpdates() }
+  @objc private func increaseFontSize() { Preferences.shared.adjustFontSize(by: 1) }
+  @objc private func decreaseFontSize() { Preferences.shared.adjustFontSize(by: -1) }
+  @objc private func resetFontSize() { Preferences.shared.resetFontSize() }
 
   @objc private func openSettings() {
     if settingsController == nil {
@@ -177,22 +212,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
     prefsObserver = NotificationCenter.default.addObserver(
       forName: Preferences.didChange,
       object: nil, queue: .main
-    ) { [weak self] _ in
+    ) { [weak self] notification in
+      let change = notification.userInfo?[Preferences.changeUserInfoKey]
+        as? Preferences.Change ?? .all
       MainActor.assumeIsolated {
         guard let self else { return }
-        self.registerHotKey()
-        self.window.heightFraction = Preferences.shared.heightFraction
-        self.repinGeometry()
-        self.window.applyOpacity(Preferences.shared.opacity)
-        self.terminalController.applyTheme()
-        let shell = Preferences.shared.resolvedShellPath
-        if shell != self.activeShellPath {
-          self.activeShellPath = shell
-          self.terminalController.resetSession()
+        switch change {
+        case .hotKey:
+          self.registerHotKey()
+        case .height:
+          self.window.heightFraction = Preferences.shared.heightFraction
+          self.repinGeometry()
+        case .opacity:
+          self.window.applyOpacity(Preferences.shared.opacity)
+        case .font:
+          self.terminalController.applyTheme()
+        case .shell:
+          self.applyShellPreference()
+        case .all:
+          self.registerHotKey()
+          self.window.heightFraction = Preferences.shared.heightFraction
+          self.repinGeometry()
+          self.window.applyOpacity(Preferences.shared.opacity)
+          self.terminalController.applyTheme()
+          self.applyShellPreference()
         }
       }
     }
   }
+
+  private func applyShellPreference() {
+    let shell = Preferences.shared.resolvedShellPath
+    guard shell != activeShellPath else { return }
+    activeShellPath = shell
+    terminalController.resetSession()
+  }
+}
+
+// MARK: - Presentation and terminal events
+
+extension AppDelegate {
 
   // MARK: - Slide animation
 
@@ -301,5 +360,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
 
   func terminalDidRequestSettings() {
     openSettings()
+  }
+
+  func terminalDidRequestFontSizeAdjustment(_ delta: CGFloat) {
+    Preferences.shared.adjustFontSize(by: delta)
+  }
+
+  func terminalDidRequestFontSizeReset() {
+    Preferences.shared.resetFontSize()
   }
 }

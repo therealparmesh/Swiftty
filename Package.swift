@@ -42,6 +42,10 @@ let package = Package(
                     "-Xlinker", "@executable_path",
                 ])
             ]
+        ),
+        .testTarget(
+            name: "SwifttyTests",
+            dependencies: ["Swiftty"]
         )
     ]
 )

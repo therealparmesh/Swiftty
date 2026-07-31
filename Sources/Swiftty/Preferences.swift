@@ -6,7 +6,18 @@ final class Preferences {
 
   static let shared = Preferences()
 
-  static let didChange = Notification.Name("com.parmscript.swiftty.preferences.didChange")
+  nonisolated static let didChange =
+    Notification.Name("com.parmscript.swiftty.preferences.didChange")
+  nonisolated static let changeUserInfoKey = "change"
+
+  enum Change: Sendable {
+    case hotKey
+    case height
+    case opacity
+    case shell
+    case font
+    case all
+  }
 
   // MARK: - Keys
 
@@ -40,7 +51,7 @@ final class Preferences {
 
   private let defaults: UserDefaults
 
-  private init(defaults: UserDefaults = .standard) {
+  init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
   }
 
@@ -59,9 +70,10 @@ final class Preferences {
       return combo.key == nil ? Self.defaultKeyCombo : combo
     }
     set {
+      guard newValue != keyCombo else { return }
       defaults.set(Int(newValue.carbonKeyCode), forKey: Key.keyCode)
       defaults.set(Int(newValue.carbonModifiers), forKey: Key.modifiers)
-      broadcast()
+      broadcast(.hotKey)
     }
   }
 
@@ -76,9 +88,11 @@ final class Preferences {
       return min(max(raw, Self.minHeightFraction), Self.maxHeightFraction)
     }
     set {
-      let clamped = min(max(newValue, Self.minHeightFraction), Self.maxHeightFraction)
+      let clamped = roundedPercent(
+        min(max(newValue, Self.minHeightFraction), Self.maxHeightFraction))
+      guard clamped != heightFraction else { return }
       defaults.set(Double(clamped), forKey: Key.heightFraction)
-      broadcast()
+      broadcast(.height)
     }
   }
 
@@ -93,9 +107,10 @@ final class Preferences {
       return min(max(raw, Self.minOpacity), Self.maxOpacity)
     }
     set {
-      let clamped = min(max(newValue, Self.minOpacity), Self.maxOpacity)
+      let clamped = roundedPercent(min(max(newValue, Self.minOpacity), Self.maxOpacity))
+      guard clamped != opacity else { return }
       defaults.set(Double(clamped), forKey: Key.opacity)
-      broadcast()
+      broadcast(.opacity)
     }
   }
 
@@ -104,12 +119,14 @@ final class Preferences {
   var shellPath: String? {
     get { defaults.string(forKey: Key.shellPath) }
     set {
-      if let path = newValue, !path.isEmpty {
+      let normalized = newValue.flatMap { $0.isEmpty ? nil : $0 }
+      guard normalized != shellPath else { return }
+      if let path = normalized {
         defaults.set(path, forKey: Key.shellPath)
       } else {
         defaults.removeObject(forKey: Key.shellPath)
       }
-      broadcast()
+      broadcast(.shell)
     }
   }
 
@@ -139,12 +156,14 @@ final class Preferences {
   var fontName: String? {
     get { defaults.string(forKey: Key.fontName) }
     set {
-      if let name = newValue, !name.isEmpty {
+      let normalized = newValue.flatMap { $0.isEmpty ? nil : $0 }
+      guard normalized != fontName else { return }
+      if let name = normalized {
         defaults.set(name, forKey: Key.fontName)
       } else {
         defaults.removeObject(forKey: Key.fontName)
       }
-      broadcast()
+      broadcast(.font)
     }
   }
 
@@ -157,9 +176,10 @@ final class Preferences {
       return min(max(raw, Self.minFontSize), Self.maxFontSize)
     }
     set {
-      let clamped = min(max(newValue, Self.minFontSize), Self.maxFontSize)
+      let clamped = min(max(newValue.rounded(), Self.minFontSize), Self.maxFontSize)
+      guard clamped != fontSize else { return }
       defaults.set(Double(clamped), forKey: Key.fontSize)
-      broadcast()
+      broadcast(.font)
     }
   }
 
@@ -168,6 +188,14 @@ final class Preferences {
       return font
     }
     return .monospacedSystemFont(ofSize: fontSize, weight: .regular)
+  }
+
+  func adjustFontSize(by delta: CGFloat) {
+    fontSize += delta
+  }
+
+  func resetFontSize() {
+    fontSize = Self.defaultFontSize
   }
 
   // MARK: - Reset
@@ -179,10 +207,17 @@ final class Preferences {
     ] {
       defaults.removeObject(forKey: key)
     }
-    broadcast()
+    broadcast(.all)
   }
 
-  private func broadcast() {
-    NotificationCenter.default.post(name: Self.didChange, object: self)
+  private func roundedPercent(_ value: CGFloat) -> CGFloat {
+    (value * 100).rounded() / 100
+  }
+
+  private func broadcast(_ change: Change) {
+    NotificationCenter.default.post(
+      name: Self.didChange,
+      object: self,
+      userInfo: [Self.changeUserInfoKey: change])
   }
 }

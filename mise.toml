@@ -9,13 +9,7 @@ run = "swift build"
 
 [tasks.run]
 description = "Build and run the bundled app"
-run = """
-set -euo pipefail
-pkill -x Swiftty 2>/dev/null || true
-./Scripts/make-icon.sh
-./Scripts/bundle.sh --config debug
-open -n dist/Swiftty.app
-"""
+run = "./script/build_and_run.sh"
 
 # --- Quality -----------------------------------------------------------------
 
@@ -31,12 +25,12 @@ run = "swift build --configuration release"
 
 [tasks.icon]
 description = "Generate Resources/AppIcon.icns"
-run = "./Scripts/make-icon.sh --force"
+run = "./script/make-icon.sh --force"
 
 [tasks.app]
 description = "Assemble dist/Swiftty.app (ad-hoc signed)"
 depends = ["icon"]
-run = "./Scripts/bundle.sh --config release"
+run = "./script/bundle.sh --config release"
 
 # --- Maintenance -------------------------------------------------------------
 

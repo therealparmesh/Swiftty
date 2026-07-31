@@ -1,5 +1,6 @@
 included:
   - Sources
+  - Tests
 
 strict: true
 reporter: xcode

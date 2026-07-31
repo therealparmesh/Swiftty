@@ -3,12 +3,12 @@
 # Assemble a runnable Swiftty.app from a SwiftPM build.
 #
 # Usage:
-#   Scripts/bundle.sh [options]
+#   script/bundle.sh [options]
 #     --sign <identity>   codesign identity. Default "-" (ad-hoc).
 #                         Pass a "Developer ID Application: ..." name for release.
 #     --config <cfg>      release (default) or debug.
 #     --version <v>       Marketing version stamped into Info.plist (e.g. 1.2.0).
-#                         Defaults to $SWIFTTY_VERSION, else "0.0.0".
+#                         Defaults to $SWIFTTY_VERSION, then Info.plist.
 #     --build <n>         CFBundleVersion (build number). Defaults to 0.
 #     --zip               Also produce dist/Swiftty.zip (ditto, signature-safe).
 #
@@ -23,8 +23,8 @@ set -euo pipefail
 APP_NAME="Swiftty"
 CONFIG="release"
 SIGN_IDENTITY="-"                                 # "-" == ad-hoc
-VERSION="${SWIFTTY_VERSION:-0.0.0}"
-BUILD_NUMBER="0"
+VERSION="${SWIFTTY_VERSION:-}"
+BUILD_NUMBER=""
 MAKE_ZIP="false"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -49,6 +49,18 @@ done
 
 # Strip a leading "v" so a "v1.2.0" tag yields a valid CFBundleShortVersionString.
 VERSION="${VERSION#v}"
+
+if [[ -z "${VERSION}" ]]; then
+    VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${INFO_PLIST_SRC}")"
+fi
+if [[ -z "${BUILD_NUMBER}" ]]; then
+    BUILD_NUMBER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${INFO_PLIST_SRC}")"
+fi
+
+if [[ "${CONFIG}" != "debug" && "${CONFIG}" != "release" ]]; then
+    echo "ERROR --config must be 'debug' or 'release'" >&2
+    exit 1
+fi
 
 # ---- Build -------------------------------------------------------------------
 
@@ -80,7 +92,7 @@ printf 'APPL????' > "${APP_DIR}/Contents/PkgInfo"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUMBER}" \
     "${APP_DIR}/Contents/Info.plist"
 
-# Bundle an app icon if one has been generated (see Scripts/make-icon.sh).
+# Bundle an app icon if one has been generated (see script/make-icon.sh).
 if [[ -f "${REPO_ROOT}/Resources/AppIcon.icns" ]]; then
     cp "${REPO_ROOT}/Resources/AppIcon.icns" "${APP_DIR}/Contents/Resources/AppIcon.icns"
     /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile AppIcon" \
@@ -96,11 +108,13 @@ fi
 # SwiftPM stages Sparkle.framework next to the executable; the app finds it via
 # the @executable_path/../Frameworks rpath set in Package.swift.
 FRAMEWORK_SRC="${BIN_DIR}/Sparkle.framework"
-if [[ -d "${FRAMEWORK_SRC}" ]]; then
-    echo "> Embedding Sparkle.framework..."
-    mkdir -p "${APP_DIR}/Contents/Frameworks"
-    cp -R "${FRAMEWORK_SRC}" "${APP_DIR}/Contents/Frameworks/"
+if [[ ! -d "${FRAMEWORK_SRC}" ]]; then
+    echo "ERROR Sparkle.framework not found at ${FRAMEWORK_SRC}" >&2
+    exit 1
 fi
+echo "> Embedding Sparkle.framework..."
+mkdir -p "${APP_DIR}/Contents/Frameworks"
+cp -R "${FRAMEWORK_SRC}" "${APP_DIR}/Contents/Frameworks/"
 
 # ---- Code signing ------------------------------------------------------------
 

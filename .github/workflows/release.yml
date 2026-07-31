@@ -37,6 +37,16 @@ jobs:
           done
           exit "$missing"
 
+      - name: Verify version and tests
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PLIST_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Sources/Swiftty/Info.plist)"
+          if [[ "$VERSION" != "$PLIST_VERSION" ]]; then
+            echo "::error::Tag $VERSION does not match Info.plist $PLIST_VERSION"
+            exit 1
+          fi
+          swift test --configuration release
+
       - name: Import signing certificate
         id: signing
         env:
@@ -62,11 +72,11 @@ jobs:
           echo "identity=${SIGN_IDENTITY}" >> "$GITHUB_OUTPUT"
 
       - name: Generate app icon
-        run: ./Scripts/make-icon.sh
+        run: ./script/make-icon.sh
 
       - name: Build, bundle & sign
         run: |
-          ./Scripts/bundle.sh \
+          ./script/bundle.sh \
             --config release \
             --version "${GITHUB_REF_NAME#v}" \
             --build "${GITHUB_REF_NAME#v}" \

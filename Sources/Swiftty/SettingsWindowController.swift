@@ -13,6 +13,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
   private let fontPopup = NSPopUpButton()
   private let fontSizeSlider = NSSlider()
   private let fontSizeValueLabel = NSTextField(labelWithString: "")
+  private let decreaseFontSizeButton = NSButton()
+  private let increaseFontSizeButton = NSButton()
   private let heightSlider = NSSlider()
   private let heightValueLabel = NSTextField(labelWithString: "")
   private let opacitySlider = NSSlider()
@@ -21,11 +23,12 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
   private var shellPaths: [String] = []
   private var fontFamilies: [String] = []
   private var updater: Updater?
+  private var preferencesObserver: NSObjectProtocol?
 
   var onRecordingChanged: ((Bool) -> Void)?
 
   convenience init(updater: Updater?) {
-    let window = NSWindow(
+    let window = SettingsWindow(
       contentRect: NSRect(x: 0, y: 0, width: 460, height: 600),
       styleMask: [.titled, .closable],
       backing: .buffered,
@@ -41,6 +44,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     window.delegate = self
     buildUI()
     syncFromPreferences()
+    observePreferences()
   }
 
   // MARK: - UI construction
@@ -81,6 +85,16 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     configureSlider(fontSizeSlider, min: Preferences.minFontSize, max: Preferences.maxFontSize,
                     action: #selector(fontSizeChanged))
+    configureFontSizeButton(
+      decreaseFontSizeButton,
+      symbol: "minus",
+      label: "Decrease font size",
+      action: #selector(decreaseFontSize))
+    configureFontSizeButton(
+      increaseFontSizeButton,
+      symbol: "plus",
+      label: "Increase font size",
+      action: #selector(increaseFontSize))
     configureSlider(heightSlider, min: Preferences.minHeightFraction, max: Preferences.maxHeightFraction,
                     action: #selector(heightChanged))
     configureSlider(opacitySlider, min: Preferences.minOpacity, max: Preferences.maxOpacity,
@@ -103,7 +117,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
       section("General", generalControls),
       section("Shortcut", [recorder, statusLabel]),
       section("Shell", [shellPopup]),
-      section("Font", [fontPopup, sliderRow(fontSizeSlider, fontSizeValueLabel)]),
+      section(
+        "Font",
+        [fontPopup, fontSizeRow(
+          decreaseFontSizeButton,
+          fontSizeSlider,
+          increaseFontSizeButton,
+          fontSizeValueLabel)]),
       section("Window Height", [sliderRow(heightSlider, heightValueLabel)]),
       section("Background Opacity", [sliderRow(opacitySlider, opacityValueLabel)])
     ]
@@ -144,6 +164,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
       stack.widthAnchor.constraint(equalTo: sections.widthAnchor).isActive = true
     }
   }
+}
+
+// MARK: - Synchronization and actions
+
+extension SettingsWindowController {
 
   // MARK: - Sync
 
@@ -163,6 +188,27 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     opacitySlider.doubleValue = Double(prefs.opacity)
     updateOpacityLabel(prefs.opacity)
     showValidationResult(.valid, committed: true)
+  }
+
+  private func observePreferences() {
+    preferencesObserver = NotificationCenter.default.addObserver(
+      forName: Preferences.didChange,
+      object: Preferences.shared,
+      queue: .main
+    ) { [weak self] notification in
+      let change = notification.userInfo?[Preferences.changeUserInfoKey]
+        as? Preferences.Change ?? .all
+      MainActor.assumeIsolated {
+        guard change == .font || change == .all else { return }
+        self?.syncFontSize()
+      }
+    }
+  }
+
+  private func syncFontSize() {
+    let size = Preferences.shared.fontSize
+    fontSizeSlider.doubleValue = Double(size)
+    updateFontSizeLabel(size)
   }
 
   private func rebuildShellPopup(selected: String?) {
@@ -257,8 +303,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
   @objc private func fontSizeChanged() {
     Preferences.shared.fontSize = CGFloat(fontSizeSlider.doubleValue)
-    updateFontSizeLabel(Preferences.shared.fontSize)
   }
+
+  @objc private func decreaseFontSize() { Preferences.shared.adjustFontSize(by: -1) }
+
+  @objc private func increaseFontSize() { Preferences.shared.adjustFontSize(by: 1) }
 
   @objc private func heightChanged() {
     Preferences.shared.heightFraction = CGFloat(heightSlider.doubleValue)
@@ -310,3 +359,24 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
 private func pointText(_ size: CGFloat) -> String { "\(Int(size.rounded())) pt" }
 private func percentText(_ value: CGFloat) -> String { "\(Int((value * 100).rounded()))%" }
+
+private final class SettingsWindow: NSWindow {
+
+  override func performKeyEquivalent(with event: NSEvent) -> Bool {
+    let command = TerminalKeyCommand.resolve(
+      key: event.charactersIgnoringModifiers,
+      modifiers: event.modifierFlags,
+      selectionActive: false)
+    switch command {
+    case .increaseFontSize:
+      Preferences.shared.adjustFontSize(by: 1)
+    case .decreaseFontSize:
+      Preferences.shared.adjustFontSize(by: -1)
+    case .resetFontSize:
+      Preferences.shared.resetFontSize()
+    default:
+      return super.performKeyEquivalent(with: event)
+    }
+    return true
+  }
+}
