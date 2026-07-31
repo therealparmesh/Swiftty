@@ -30,7 +30,7 @@ final class Updater: NSObject {
 
 }
 
-extension Updater: @MainActor SPUStandardUserDriverDelegate {
+extension Updater: @preconcurrency SPUStandardUserDriverDelegate {
 
   var supportsGentleScheduledUpdateReminders: Bool { true }
 
