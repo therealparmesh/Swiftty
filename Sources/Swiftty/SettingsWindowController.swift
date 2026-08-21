@@ -36,7 +36,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     )
     window.title = "Swiftty Settings"
     window.isReleasedWhenClosed = false
-    window.level = .popUpMenu
     window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
     window.center()
     self.init(window: window)

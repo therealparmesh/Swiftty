@@ -48,7 +48,7 @@ final class DropdownWindow: NSWindow {
     standardWindowButton(.miniaturizeButton)?.isHidden = true
     standardWindowButton(.zoomButton)?.isHidden = true
 
-    level = .popUpMenu
+    level = .floating
 
     collectionBehavior = [
       .canJoinAllSpaces,
@@ -80,13 +80,23 @@ final class DropdownWindow: NSWindow {
   // MARK: - Geometry
 
   func deployedFrame(on screen: NSScreen) -> NSRect {
-    let full = screen.frame
-    let visible = screen.visibleFrame
-    let height = (visible.height * heightFraction).rounded()
+    Self.deployedFrame(
+      fullFrame: screen.frame,
+      visibleFrame: screen.visibleFrame,
+      heightFraction: heightFraction
+    )
+  }
+
+  static func deployedFrame(
+    fullFrame: NSRect,
+    visibleFrame: NSRect,
+    heightFraction: CGFloat
+  ) -> NSRect {
+    let height = (visibleFrame.height * heightFraction).rounded()
     return NSRect(
-      x: full.minX,
-      y: full.maxY - height,
-      width: full.width,
+      x: fullFrame.minX,
+      y: visibleFrame.maxY - height,
+      width: fullFrame.width,
       height: height
     )
   }
