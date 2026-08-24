@@ -294,6 +294,7 @@ extension AppDelegate {
     window.setFrame(start, display: false)
     window.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
+    terminalController.focusTerminal()
 
     isAnimating = true
     NSAnimationContext.runAnimationGroup(
@@ -307,7 +308,6 @@ extension AppDelegate {
           guard let self else { return }
           self.isAnimating = false
           self.window.markDeployed(true)
-          self.terminalController.focusTerminal()
         }
       })
   }
