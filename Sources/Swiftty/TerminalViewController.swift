@@ -317,13 +317,6 @@ final class TerminalViewController: NSViewController {
     return ordered.joined(separator: ":")
   }
 
-  // MARK: - Resize
-
-  override func viewDidLayout() {
-    super.viewDidLayout()
-    terminalView?.frame = view.bounds
-  }
-
   func focusTerminal() {
     view.window?.makeFirstResponder(terminalView)
   }
