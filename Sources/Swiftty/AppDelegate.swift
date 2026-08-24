@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
   private var updater: Updater?
 
   private var isAnimating = false
+  private var deployedScreen: NSScreen?
 
   private var globalClickMonitor: Any?
   private var resignObserver: NSObjectProtocol?
@@ -178,7 +179,7 @@ extension AppDelegate {
   }
 
   private func repinGeometry() {
-    let screen = activeScreen()
+    let screen = targetScreen()
     if window.isDeployed {
       window.setFrame(window.deployedFrame(on: screen), display: true)
     } else {
@@ -262,6 +263,14 @@ extension AppDelegate {
       ?? NSScreen.screens.first!
   }
 
+  /// The screen the window is on while it is out, so it retracts where it came from.
+  private func targetScreen() -> NSScreen {
+    guard let screen = deployedScreen, NSScreen.screens.contains(screen) else {
+      return activeScreen()
+    }
+    return screen
+  }
+
   func toggle() {
     guard !isAnimating else { return }
     if window.isDeployed {
@@ -278,6 +287,7 @@ extension AppDelegate {
 
   private func deploy() {
     let screen = activeScreen()
+    deployedScreen = screen
     let start = window.retractedFrame(on: screen)
     let end = window.deployedFrame(on: screen)
 
@@ -303,8 +313,7 @@ extension AppDelegate {
   }
 
   private func retract() {
-    let screen = activeScreen()
-    let end = window.retractedFrame(on: screen)
+    let end = window.retractedFrame(on: targetScreen())
 
     isAnimating = true
     window.markDeployed(false)
@@ -318,6 +327,7 @@ extension AppDelegate {
         MainActor.assumeIsolated {
           guard let self else { return }
           self.isAnimating = false
+          self.deployedScreen = nil
           self.window.orderOut(nil)
         }
       })
