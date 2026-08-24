@@ -86,6 +86,7 @@ extension SettingsWindowController {
 extension SettingsWindowController {
 
   func show() {
+    syncFromPreferences()
     NSApp.activate(ignoringOtherApps: true)
     showWindow(nil)
     window?.makeKeyAndOrderFront(nil)

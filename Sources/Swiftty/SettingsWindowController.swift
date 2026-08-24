@@ -171,7 +171,7 @@ extension SettingsWindowController {
 
   // MARK: - Sync
 
-  private func syncFromPreferences() {
+  func syncFromPreferences() {
     let prefs = Preferences.shared
     updateLoginStatus()
     if let updater {
