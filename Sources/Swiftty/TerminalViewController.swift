@@ -242,13 +242,9 @@ final class TerminalViewController: NSViewController {
 
     terminalView.installColors(theme.ansi)
     terminalView.nativeForegroundColor = theme.foreground
-    terminalView.nativeBackgroundColor =
-      theme.background.withAlphaComponent(Preferences.shared.opacity)
+    terminalView.nativeBackgroundColor = theme.background
     terminalView.caretColor = theme.cursor
     terminalView.selectedTextBackgroundColor = theme.selection
-
-    // The layer paints below the cells, so leave it clear to not double the opacity.
-    terminalView.layer?.backgroundColor = nil
 
     terminalView.getTerminal().updateFullScreen()
     terminalView.needsDisplay = true
