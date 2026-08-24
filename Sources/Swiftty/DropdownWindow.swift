@@ -41,6 +41,7 @@ final class DropdownWindow: NSWindow {
     isOpaque = false
     backgroundColor = .clear
     hasShadow = true
+    appearance = NSAppearance(named: .darkAqua)
 
     titleVisibility = .hidden
     titlebarAppearsTransparent = true
