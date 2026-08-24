@@ -41,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
     registerHotKey()
     setUpAutoRetract()
     observePreferences()
+    NotificationManager.shared.requestAuthorization()
     if Updater.isSupported { updater = Updater() }
   }
 

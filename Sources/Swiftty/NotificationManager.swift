@@ -7,7 +7,6 @@ final class NotificationManager: NSObject {
   static let shared = NotificationManager()
 
   private let center = UNUserNotificationCenter.current()
-  private var didRequestAuthorization = false
   private var lastFired: Date = .distantPast
   private let coalesceInterval: TimeInterval = 2.0
 
@@ -16,24 +15,20 @@ final class NotificationManager: NSObject {
     center.delegate = self
   }
 
+  /// Asked for at launch, so the prompt does not surprise anyone on the first bell.
+  func requestAuthorization() {
+    center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+  }
+
   func notifyBell() {
     let now = Date()
     guard now.timeIntervalSince(lastFired) >= coalesceInterval else { return }
     lastFired = now
 
-    ensureAuthorized { [weak self] granted in
+    Self.getNotificationSettings(center: center) { [weak self] granted in
       guard granted else { return }
       self?.deliverBellBanner(at: now)
     }
-  }
-
-  private func ensureAuthorized(_ completion: @escaping @MainActor (Bool) -> Void) {
-    if didRequestAuthorization {
-      Self.getNotificationSettings(center: center, completion: completion)
-      return
-    }
-    didRequestAuthorization = true
-    Self.requestAuthorization(center: center, completion: completion)
   }
 
   private nonisolated static func getNotificationSettings(
@@ -42,15 +37,6 @@ final class NotificationManager: NSObject {
   ) {
     center.getNotificationSettings { settings in
       let granted = settings.authorizationStatus == .authorized
-      Task { @MainActor in completion(granted) }
-    }
-  }
-
-  private nonisolated static func requestAuthorization(
-    center: UNUserNotificationCenter,
-    completion: @escaping @MainActor (Bool) -> Void
-  ) {
-    center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
       Task { @MainActor in completion(granted) }
     }
   }
