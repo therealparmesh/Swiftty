@@ -157,7 +157,6 @@ extension AppDelegate {
     terminalController = TerminalViewController()
     terminalController.eventSink = self
     window.heightFraction = Preferences.shared.heightFraction
-    window.applyOpacity(Preferences.shared.opacity)
     activeShellPath = Preferences.shared.resolvedShellPath
 
     let host = terminalController.view
@@ -226,9 +225,7 @@ extension AppDelegate {
         case .height:
           self.window.heightFraction = Preferences.shared.heightFraction
           self.repinGeometry()
-        case .opacity:
-          self.window.applyOpacity(Preferences.shared.opacity)
-        case .font:
+        case .opacity, .font:
           self.terminalController.applyTheme()
         case .shell:
           self.applyShellPreference()
@@ -236,7 +233,6 @@ extension AppDelegate {
           self.registerHotKey()
           self.window.heightFraction = Preferences.shared.heightFraction
           self.repinGeometry()
-          self.window.applyOpacity(Preferences.shared.opacity)
           self.terminalController.applyTheme()
           self.applyShellPreference()
         }

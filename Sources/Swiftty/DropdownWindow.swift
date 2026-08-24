@@ -115,8 +115,4 @@ final class DropdownWindow: NSWindow {
   func markDeployed(_ deployed: Bool) {
     isDeployed = deployed
   }
-
-  func applyOpacity(_ opacity: CGFloat) {
-    alphaValue = opacity
-  }
 }
