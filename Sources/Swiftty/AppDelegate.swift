@@ -24,10 +24,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
 
   // MARK: - Lifecycle
 
+  // NSApplication holds its delegate weakly.
+  private static let shared = AppDelegate()
+
   static func main() {
     let app = NSApplication.shared
-    let delegate = AppDelegate()
-    app.delegate = delegate
+    app.delegate = shared
     app.setActivationPolicy(.accessory)
     app.run()
   }
