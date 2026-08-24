@@ -2,7 +2,21 @@ import AppKit
 
 final class SettingsWindow: NSWindow {
 
+  /// Escape closes the window unless the recorder captures it first.
+  override func keyDown(with event: NSEvent) {
+    if event.charactersIgnoringModifiers == "\u{1b}" {
+      close()
+      return
+    }
+    super.keyDown(with: event)
+  }
+
   override func performKeyEquivalent(with event: NSEvent) -> Bool {
+    if event.modifierFlags.contains(.command), event.charactersIgnoringModifiers == "w" {
+      close()
+      return true
+    }
+
     let command = TerminalKeyCommand.resolve(
       key: event.charactersIgnoringModifiers,
       modifiers: event.modifierFlags,
