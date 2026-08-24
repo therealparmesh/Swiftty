@@ -7,6 +7,12 @@ struct TerminalTheme {
   let foreground: NSColor
   let cursor: NSColor
   let selection: NSColor
+
+  /// Chrome colours, so the settings window matches the terminal.
+  let surface: NSColor
+  let accent: NSColor
+  let dim: NSColor
+
   let ansi: [SwiftTerm.Color]
 
   static var tokyoNight: TerminalTheme {
@@ -15,6 +21,9 @@ struct TerminalTheme {
       foreground: NSColor(hex: 0xC0CAF5),
       cursor: NSColor(hex: 0xC0CAF5),
       selection: NSColor(hex: 0x33467C),
+      surface: NSColor(hex: 0x24283B),
+      accent: NSColor(hex: 0x7AA2F7),
+      dim: NSColor(hex: 0x9AA5CE),
       ansi: [
         SwiftTerm.Color(hex: 0x15161E),
         SwiftTerm.Color(hex: 0xF7768E),

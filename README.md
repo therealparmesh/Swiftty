@@ -9,7 +9,7 @@ Requires macOS 14 or later.
 ## Features
 
 - Global menu bar terminal with no Dock tile
-- Tokyo Night terminal colors out of the box
+- Tokyo Night colors in the terminal and in settings
 - Adjustable window height, opacity, shell, font, and shortcut
 - Real login shell through a PTY, with Homebrew-friendly PATH defaults
 - Bell notifications while the terminal is hidden
@@ -51,8 +51,8 @@ swift build
 Releases are cut from tags:
 
 ```sh
-git tag v1.0.4
-git push origin v1.0.4
+git tag v1.0.5
+git push origin v1.0.5
 ```
 
 The GitHub release workflow builds the app, signs it with Developer ID,

@@ -101,12 +101,13 @@ final class HotKeyRecorderView: NSControl {
   override func draw(_ dirtyRect: NSRect) {
     super.draw(dirtyRect)
 
-    let accent = NSColor.controlAccentColor
-    layer?.borderColor = (isRecording ? accent : NSColor.separatorColor).cgColor
+    let theme = TerminalTheme.tokyoNight
+    let accent = theme.accent
+    layer?.borderColor = (isRecording ? accent : theme.selection).cgColor
     layer?.backgroundColor =
       (isRecording
       ? accent.withAlphaComponent(0.12)
-      : NSColor.controlBackgroundColor).cgColor
+      : theme.surface).cgColor
 
     let text: String
     if isRecording {
@@ -119,7 +120,7 @@ final class HotKeyRecorderView: NSControl {
     style.alignment = .center
     let attrs: [NSAttributedString.Key: Any] = [
       .font: NSFont.systemFont(ofSize: 13, weight: .medium),
-      .foregroundColor: isRecording ? accent : NSColor.labelColor,
+      .foregroundColor: isRecording ? accent : theme.foreground,
       .paragraphStyle: style
     ]
     let attributed = NSAttributedString(string: text, attributes: attrs)

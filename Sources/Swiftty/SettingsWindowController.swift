@@ -39,6 +39,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     window.title = "Swiftty Settings"
     window.isReleasedWhenClosed = false
     window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+    window.appearance = NSAppearance(named: .darkAqua)
+    window.backgroundColor = TerminalTheme.tokyoNight.background
+    window.titlebarAppearsTransparent = true
     // The terminal floats, so settings has to sit one level above it.
     window.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
     self.init(window: window)
@@ -52,6 +55,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
   // MARK: - UI construction
 
   private func configureControls() {
+    let theme = TerminalTheme.tokyoNight
     recorder.onCapture = { [weak self] combo in self?.handleRecorded(combo) }
     recorder.onRecordingChanged = { [weak self] recording in
       self?.onRecordingChanged?(recording)
@@ -59,7 +63,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     recorder.heightAnchor.constraint(equalToConstant: 34).isActive = true
 
     statusLabel.font = .systemFont(ofSize: 11)
-    statusLabel.textColor = .secondaryLabelColor
+    statusLabel.textColor = theme.dim
     statusLabel.lineBreakMode = .byWordWrapping
     statusLabel.maximumNumberOfLines = 2
     statusLabel.cell?.wraps = true
@@ -69,7 +73,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     launchAtLoginCheckbox.action = #selector(launchAtLoginToggled)
 
     loginStatusLabel.font = .systemFont(ofSize: 11)
-    loginStatusLabel.textColor = .secondaryLabelColor
+    loginStatusLabel.textColor = theme.dim
     loginStatusLabel.lineBreakMode = .byWordWrapping
     loginStatusLabel.maximumNumberOfLines = 2
     loginStatusLabel.cell?.wraps = true
@@ -81,9 +85,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     shellPopup.target = self
     shellPopup.action = #selector(shellChanged)
+    shellPopup.bezelColor = theme.surface
 
     fontPopup.target = self
     fontPopup.action = #selector(fontChanged)
+    fontPopup.bezelColor = theme.surface
 
     configureSlider(fontSizeSlider, min: Preferences.minFontSize, max: Preferences.maxFontSize,
                     action: #selector(fontSizeChanged))
@@ -138,6 +144,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     let restoreButton = bottomButton("Restore Defaults", #selector(restoreDefaults))
     let doneButton = bottomButton("Done", #selector(closeWindow))
     doneButton.keyEquivalent = "\r"
+    doneButton.bezelColor = TerminalTheme.tokyoNight.accent
 
     content.addSubview(sections)
     content.addSubview(restoreButton)
@@ -340,7 +347,7 @@ extension SettingsWindowController {
   private func showValidationResult(_ result: HotKeyValidator.Result, committed: Bool) {
     switch result {
     case .valid:
-      statusLabel.textColor = .secondaryLabelColor
+      statusLabel.textColor = TerminalTheme.tokyoNight.dim
       statusLabel.stringValue =
         committed
         ? "Press the shortcut anywhere to toggle Swiftty."

@@ -5,6 +5,7 @@ extension SettingsWindowController {
   func section(_ title: String, _ views: [NSView]) -> NSStackView {
     let label = NSTextField(labelWithString: title)
     label.font = .systemFont(ofSize: 13, weight: .semibold)
+    label.textColor = TerminalTheme.tokyoNight.foreground
 
     let stack = NSStackView(views: [label] + views)
     stack.orientation = .vertical
@@ -56,6 +57,7 @@ extension SettingsWindowController {
     button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
     button.imagePosition = .imageOnly
     button.bezelStyle = .rounded
+    button.bezelColor = TerminalTheme.tokyoNight.surface
     button.target = self
     button.action = action
     button.toolTip = label
@@ -70,6 +72,7 @@ extension SettingsWindowController {
     slider.target = self
     slider.action = action
     slider.isContinuous = true
+    slider.trackFillColor = TerminalTheme.tokyoNight.accent
     slider.translatesAutoresizingMaskIntoConstraints = false
   }
 
@@ -83,7 +86,7 @@ extension SettingsWindowController {
   func configureValueLabel(_ label: NSTextField) {
     label.alignment = .right
     label.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-    label.textColor = .secondaryLabelColor
+    label.textColor = TerminalTheme.tokyoNight.dim
     label.translatesAutoresizingMaskIntoConstraints = false
   }
 }
