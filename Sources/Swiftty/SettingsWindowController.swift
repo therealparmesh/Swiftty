@@ -350,6 +350,14 @@ extension SettingsWindowController {
   // MARK: - NSWindowDelegate
 
   func windowWillClose(_ notification: Notification) {
+    stopRecording()
+  }
+
+  func windowDidResignKey(_ notification: Notification) {
+    stopRecording()
+  }
+
+  private func stopRecording() {
     if window?.firstResponder === recorder {
       window?.makeFirstResponder(nil)
     }
