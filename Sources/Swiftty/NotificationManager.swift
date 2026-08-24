@@ -17,6 +17,10 @@ final class NotificationManager: NSObject {
 
   /// Asked for at launch, so the prompt does not surprise anyone on the first bell.
   func requestAuthorization() {
+    Self.requestAuthorization(center: center)
+  }
+
+  private nonisolated static func requestAuthorization(center: UNUserNotificationCenter) {
     center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
   }
 
