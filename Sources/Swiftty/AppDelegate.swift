@@ -59,14 +59,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
     appMenuItem.submenu = appMenu
     mainMenu.addItem(appMenuItem)
 
-    let viewMenuItem = NSMenuItem()
-    let viewMenu = NSMenu(title: "View")
-    viewMenu.addItem(menuItem("Increase Font Size", #selector(increaseFontSize), key: "+"))
-    viewMenu.addItem(menuItem("Decrease Font Size", #selector(decreaseFontSize), key: "-"))
-    viewMenu.addItem(menuItem("Reset Font Size", #selector(resetFontSize), key: "0"))
-    viewMenuItem.submenu = viewMenu
-    mainMenu.addItem(viewMenuItem)
-
     NSApp.mainMenu = mainMenu
   }
 
@@ -136,9 +128,6 @@ extension AppDelegate {
 
   @objc private func menuToggle() { toggle() }
   @objc private func checkForUpdates() { updater?.checkForUpdates() }
-  @objc private func increaseFontSize() { Preferences.shared.adjustFontSize(by: 1) }
-  @objc private func decreaseFontSize() { Preferences.shared.adjustFontSize(by: -1) }
-  @objc private func resetFontSize() { Preferences.shared.resetFontSize() }
 
   @objc private func openSettings() {
     if settingsController == nil {
