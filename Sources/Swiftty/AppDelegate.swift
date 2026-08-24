@@ -347,9 +347,12 @@ extension AppDelegate {
       forName: NSWindow.didResignKeyNotification,
       object: window, queue: .main
     ) { [weak self] _ in
-      MainActor.assumeIsolated {
-        guard let self, self.shouldAutoRetract else { return }
-        self.retract()
+      // Wait for the app to settle: the Settings window must not retract the terminal.
+      DispatchQueue.main.async {
+        MainActor.assumeIsolated {
+          guard let self, self.shouldAutoRetract, !NSApp.isActive else { return }
+          self.retract()
+        }
       }
     }
   }
