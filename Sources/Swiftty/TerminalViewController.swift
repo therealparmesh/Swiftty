@@ -193,7 +193,6 @@ final class TerminalViewController: NSViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     buildTerminal()
-    startShell()
   }
 
   private func buildTerminal() {
@@ -268,7 +267,8 @@ final class TerminalViewController: NSViewController {
     focusTerminal()
   }
 
-  private func startShell() {
+  /// Call this once the view has its real size, so the shell starts with the right window size.
+  func startShell() {
     shellStartedAt = Date()
     let shell = Preferences.shared.resolvedShellPath
     let shellName = (shell as NSString).lastPathComponent

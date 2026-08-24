@@ -160,6 +160,8 @@ extension AppDelegate {
     ])
 
     window.layout(on: activeScreen())
+    window.contentView?.layoutSubtreeIfNeeded()
+    terminalController.startShell()
 
     screenObserver = NotificationCenter.default.addObserver(
       forName: NSApplication.didChangeScreenParametersNotification,
