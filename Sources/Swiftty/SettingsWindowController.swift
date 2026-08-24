@@ -39,6 +39,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     window.title = "Swiftty Settings"
     window.isReleasedWhenClosed = false
     window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+    // The terminal floats, so settings has to sit one level above it.
+    window.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
     self.init(window: window)
     self.updater = updater
     window.delegate = self
