@@ -269,7 +269,8 @@ final class TerminalViewController: NSViewController {
     let shellName = (shell as NSString).lastPathComponent
 
     var env = Terminal.getEnvironmentVariables(termName: "xterm-256color")
-    env.removeAll { $0.hasPrefix("TERM=") || $0.hasPrefix("PATH=") || $0.hasPrefix("SHELL=") }
+    let overridden = ["TERM=", "COLORTERM=", "LANG=", "PATH=", "SHELL="]
+    env.removeAll { entry in overridden.contains { entry.hasPrefix($0) } }
     env.append("TERM=xterm-256color")
     env.append("COLORTERM=truecolor")
     env.append("LANG=\(currentLang())")
