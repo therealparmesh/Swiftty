@@ -51,8 +51,8 @@ swift build
 Releases are cut from tags:
 
 ```sh
-git tag v1.0.2
-git push origin v1.0.2
+git tag v1.0.3
+git push origin v1.0.3
 ```
 
 The GitHub release workflow builds the app, signs it with Developer ID,

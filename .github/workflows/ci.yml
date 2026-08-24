@@ -24,6 +24,11 @@ jobs:
       - name: Show toolchain
         run: swift --version
 
+      - uses: jdx/mise-action@v2
+
+      - name: Lint
+        run: mise run lint
+
       - name: Run tests
         run: swift test
 
