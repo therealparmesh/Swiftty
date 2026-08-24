@@ -82,22 +82,6 @@ final class SwifttyTerminalView: LocalProcessTerminalView {
     onProcessExit?()
   }
 
-  // MARK: - Copy / paste
-
-  @objc override func copy(_ sender: Any?) {
-    guard let selected = getSelection() else { return }
-    guard !selected.isEmpty else { return }
-    let pasteboard = NSPasteboard.general
-    pasteboard.clearContents()
-    pasteboard.setString(selected, forType: .string)
-  }
-
-  @objc override func paste(_ sender: Any?) {
-    guard let raw = NSPasteboard.general.string(forType: .string) else { return }
-    guard !raw.isEmpty else { return }
-    send(txt: raw)
-  }
-
   // MARK: - Key equivalents
 
   override func performKeyEquivalent(with event: NSEvent) -> Bool {
@@ -106,8 +90,8 @@ final class SwifttyTerminalView: LocalProcessTerminalView {
       modifiers: event.modifierFlags,
       selectionActive: selectionActive)
     switch command {
-    case .copy: copy(nil)
-    case .paste: paste(nil)
+    case .copy: copy(self)
+    case .paste: paste(self)
     case .selectAll: selectAll(nil)
     case .clearBuffer: onClearBuffer?()
     case .resetSession: onResetSession?()
