@@ -219,9 +219,12 @@ final class TerminalViewController: NSViewController {
       self?.eventSink?.terminalDidRingBell()
     }
     term.onProcessExit = { [weak self] in
-      guard let self, !self.isResetting else { return }
-      self.startShell()
-      self.focusTerminal()
+      // The process is still marked as running until this callback returns.
+      DispatchQueue.main.async {
+        guard let self, !self.isResetting else { return }
+        self.startShell()
+        self.focusTerminal()
+      }
     }
     term.onClearBuffer = { [weak self] in self?.clearBuffer() }
     term.onResetSession = { [weak self] in self?.resetSession() }
