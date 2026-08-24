@@ -6,6 +6,7 @@ struct TerminalTheme {
   let background: NSColor
   let foreground: NSColor
   let cursor: NSColor
+  let selection: NSColor
   let ansi: [SwiftTerm.Color]
 
   static var tokyoNight: TerminalTheme {
@@ -13,6 +14,7 @@ struct TerminalTheme {
       background: NSColor(hex: 0x1A1B26),
       foreground: NSColor(hex: 0xC0CAF5),
       cursor: NSColor(hex: 0xC0CAF5),
+      selection: NSColor(hex: 0x33467C),
       ansi: [
         SwiftTerm.Color(hex: 0x15161E),
         SwiftTerm.Color(hex: 0xF7768E),
