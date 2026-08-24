@@ -73,6 +73,13 @@ extension SettingsWindowController {
     slider.translatesAutoresizingMaskIntoConstraints = false
   }
 
+  func bottomButton(_ title: String, _ action: Selector) -> NSButton {
+    let button = NSButton(title: title, target: self, action: action)
+    button.bezelStyle = .rounded
+    button.translatesAutoresizingMaskIntoConstraints = false
+    return button
+  }
+
   func configureValueLabel(_ label: NSTextField) {
     label.alignment = .right
     label.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
@@ -84,6 +91,13 @@ extension SettingsWindowController {
 // MARK: - Presentation
 
 extension SettingsWindowController {
+
+  /// The window is not resizable, so the constraints decide how tall it is.
+  func resizeToFit() {
+    guard let content = window?.contentView else { return }
+    content.layoutSubtreeIfNeeded()
+    window?.setContentSize(content.fittingSize)
+  }
 
   func show() {
     syncFromPreferences()

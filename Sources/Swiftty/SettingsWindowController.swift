@@ -27,9 +27,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
   var onRecordingChanged: ((Bool) -> Void)?
 
+  private static let contentWidth: CGFloat = 460
+
   convenience init(updater: Updater?) {
     let window = SettingsWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 460, height: 600),
+      contentRect: NSRect(x: 0, y: 0, width: Self.contentWidth, height: 600),
       styleMask: [.titled, .closable],
       backing: .buffered,
       defer: false
@@ -37,7 +39,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     window.title = "Swiftty Settings"
     window.isReleasedWhenClosed = false
     window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-    window.center()
     self.init(window: window)
     self.updater = updater
     window.delegate = self
@@ -132,15 +133,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     sections.spacing = 18
     sections.translatesAutoresizingMaskIntoConstraints = false
 
-    let restoreButton = NSButton(title: "Restore Defaults", target: self,
-                                 action: #selector(restoreDefaults))
-    restoreButton.bezelStyle = .rounded
-    restoreButton.translatesAutoresizingMaskIntoConstraints = false
-
-    let doneButton = NSButton(title: "Done", target: self, action: #selector(closeWindow))
-    doneButton.bezelStyle = .rounded
+    let restoreButton = bottomButton("Restore Defaults", #selector(restoreDefaults))
+    let doneButton = bottomButton("Done", #selector(closeWindow))
     doneButton.keyEquivalent = "\r"
-    doneButton.translatesAutoresizingMaskIntoConstraints = false
 
     content.addSubview(sections)
     content.addSubview(restoreButton)
@@ -153,6 +148,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
       restoreButton.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20),
       restoreButton.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -20),
+      restoreButton.topAnchor.constraint(
+        greaterThanOrEqualTo: sections.bottomAnchor, constant: 20),
 
       doneButton.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
       doneButton.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -20),
@@ -162,6 +159,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     for stack in sectionStacks {
       stack.widthAnchor.constraint(equalTo: sections.widthAnchor).isActive = true
     }
+
+    content.widthAnchor.constraint(equalToConstant: Self.contentWidth).isActive = true
+    resizeToFit()
+    window?.center()
   }
 }
 
@@ -270,6 +271,7 @@ extension SettingsWindowController {
 
   private func updateLoginStatus(message: String? = nil) {
     launchAtLoginCheckbox.state = LoginItem.isEnabled ? .on : .off
+    defer { resizeToFit() }
     if let message {
       loginStatusLabel.textColor = .systemRed
       loginStatusLabel.stringValue = message
