@@ -194,6 +194,8 @@ final class TerminalViewController: NSViewController {
   weak var eventSink: TerminalEventSink?
 
   private var isResetting = false
+  private var shellStartedAt: Date = .distantPast
+  private var fastExitCount = 0
 
   // MARK: - View construction
 
@@ -222,8 +224,7 @@ final class TerminalViewController: NSViewController {
       // The process is still marked as running until this callback returns.
       DispatchQueue.main.async {
         guard let self, !self.isResetting else { return }
-        self.startShell()
-        self.focusTerminal()
+        self.restartShell()
       }
     }
     term.onClearBuffer = { [weak self] in self?.clearBuffer() }
@@ -267,7 +268,19 @@ final class TerminalViewController: NSViewController {
 
   // MARK: - Shell lifecycle
 
+  private func restartShell() {
+    fastExitCount = Date().timeIntervalSince(shellStartedAt) < 1 ? fastExitCount + 1 : 0
+    guard fastExitCount < 3 else {
+      terminalView.feed(
+        text: "\r\n[swiftty] The shell keeps exiting. Press Command-Shift-R to try again.\r\n")
+      return
+    }
+    startShell()
+    focusTerminal()
+  }
+
   private func startShell() {
+    shellStartedAt = Date()
     let shell = Preferences.shared.resolvedShellPath
     let shellName = (shell as NSString).lastPathComponent
 
@@ -339,6 +352,7 @@ final class TerminalViewController: NSViewController {
   func resetSession() {
     guard !isResetting else { return }
     isResetting = true
+    fastExitCount = 0
 
     terminalView.terminate()
     terminalView.getTerminal().resetToInitialState()
