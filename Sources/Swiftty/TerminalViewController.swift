@@ -306,7 +306,7 @@ final class TerminalViewController: NSViewController {
     ]
     var seen = Set<String>()
     var ordered: [String] = []
-    for entry in inherited + defaults where seen.insert(entry).inserted {
+    for entry in defaults + inherited where seen.insert(entry).inserted {
       ordered.append(entry)
     }
     return ordered.joined(separator: ":")
