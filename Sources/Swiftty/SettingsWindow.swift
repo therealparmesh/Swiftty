@@ -1,5 +1,9 @@
 import AppKit
 
+/// The window that holds the settings controls.
+///
+/// It exists only to catch keys: Escape and Command-W close it, and the font size
+/// shortcuts keep working while Settings has the focus.
 final class SettingsWindow: NSWindow {
 
   /// Escape closes the window unless the recorder captures it first.

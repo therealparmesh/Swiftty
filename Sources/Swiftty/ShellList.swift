@@ -1,5 +1,9 @@
 import Foundation
 
+/// The shells offered in Settings.
+///
+/// `/etc/shells` is the list macOS itself trusts as login shells, so Swiftty shows
+/// what is in there and can still be run.
 enum ShellList {
 
   static func available() -> [String] {

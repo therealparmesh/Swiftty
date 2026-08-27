@@ -1,6 +1,10 @@
 import Foundation
 import ServiceManagement
 
+/// The "Launch Swiftty at login" switch.
+///
+/// macOS owns the answer. It can also want the user to approve the item in System
+/// Settings first, which is what `requiresApproval` reports.
 enum LoginItem {
 
   static var isEnabled: Bool {

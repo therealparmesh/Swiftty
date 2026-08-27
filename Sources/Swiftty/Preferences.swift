@@ -1,6 +1,11 @@
 import AppKit
 import HotKey
 
+/// The one place that remembers what the user picked.
+///
+/// Every value is read from and written to `UserDefaults`. A setter clamps the
+/// value, saves it, and then posts `didChange`. No other part of the app keeps a
+/// copy of a setting.
 @MainActor
 final class Preferences {
 
@@ -10,6 +15,7 @@ final class Preferences {
     Notification.Name("com.parmscript.swiftty.preferences.didChange")
   nonisolated static let changeUserInfoKey = "change"
 
+  /// What changed, so a listener can redo only the work it has to.
   enum Change: Sendable {
     case hotKey
     case height
@@ -64,9 +70,12 @@ final class Preferences {
       else {
         return Self.defaultKeyCombo
       }
+      // Carbon codes are unsigned, but UserDefaults stores signed integers, so
+      // they travel as bit patterns.
       let code = UInt32(bitPattern: Int32(defaults.integer(forKey: Key.keyCode)))
       let mods = UInt32(bitPattern: Int32(defaults.integer(forKey: Key.modifiers)))
       let combo = KeyCombo(carbonKeyCode: code, carbonModifiers: mods)
+      // A saved code can stop being a real key, for example after a keyboard change.
       return combo.key == nil ? Self.defaultKeyCombo : combo
     }
     set {
@@ -116,6 +125,7 @@ final class Preferences {
 
   // MARK: - Shell
 
+  /// The shell the user picked, or `nil` for "whatever the system uses".
   var shellPath: String? {
     get { defaults.string(forKey: Key.shellPath) }
     set {
@@ -137,6 +147,10 @@ final class Preferences {
     return Self.systemLoginShell()
   }
 
+  /// The login shell macOS has on file for this user.
+  ///
+  /// The account record is the truth. `SHELL` is only a fallback, because it is
+  /// inherited and can point at something else.
   static func systemLoginShell() -> String {
     if let passwd = getpwuid(getuid()), let cShell = passwd.pointee.pw_shell {
       let shell = String(cString: cShell)
@@ -153,6 +167,7 @@ final class Preferences {
 
   // MARK: - Font
 
+  /// The font family the user picked, or `nil` for the system monospaced font.
   var fontName: String? {
     get { defaults.string(forKey: Key.fontName) }
     set {
@@ -200,6 +215,7 @@ final class Preferences {
 
   // MARK: - Reset
 
+  /// Removes every key, so the getters fall back to the defaults again.
   func restoreDefaults() {
     for key in [
       Key.keyCode, Key.modifiers, Key.heightFraction, Key.opacity,

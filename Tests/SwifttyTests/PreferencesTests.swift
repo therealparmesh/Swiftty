@@ -2,10 +2,11 @@ import Foundation
 import XCTest
 @testable import Swiftty
 
+/// Checks that settings come back the way they went in.
 @MainActor
 final class PreferencesTests: XCTestCase {
 
-  func testDefaults() {
+  func testNewInstallStartsWithTheDefaultValues() {
     let (preferences, cleanup) = makePreferences()
     defer { cleanup() }
 
@@ -14,7 +15,7 @@ final class PreferencesTests: XCTestCase {
     XCTAssertEqual(preferences.fontSize, 14)
   }
 
-  func testValuesAreRoundedAndClamped() {
+  func testUntidyValuesAreRoundedAndPulledIntoRange() {
     let (preferences, cleanup) = makePreferences()
     defer { cleanup() }
 
@@ -27,7 +28,7 @@ final class PreferencesTests: XCTestCase {
     XCTAssertEqual(preferences.fontSize, 19)
   }
 
-  func testFontSizeCommandsRespectBoundsAndReset() {
+  func testFontSizeStopsAtTheLimitAndGoesBackToTheDefault() {
     let (preferences, cleanup) = makePreferences()
     defer { cleanup() }
 
@@ -42,6 +43,7 @@ final class PreferencesTests: XCTestCase {
     XCTAssertEqual(preferences.fontSize, Preferences.defaultFontSize)
   }
 
+  /// A throwaway defaults suite per test, so nothing touches the real settings.
   private func makePreferences() -> (Preferences, () -> Void) {
     let suiteName = "PreferencesTests.\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: suiteName)!

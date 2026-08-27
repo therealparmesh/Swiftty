@@ -2,6 +2,11 @@ import AppKit
 import Carbon.HIToolbox
 import HotKey
 
+/// The box in Settings that shows the current shortcut and records a new one.
+///
+/// Click it to start recording, press keys to set a shortcut, press Escape to
+/// stop. It only reports what was pressed; `HotKeyValidator` decides if it is
+/// allowed.
 final class HotKeyRecorderView: NSControl {
 
   var onCapture: ((KeyCombo) -> Void)?
@@ -45,6 +50,7 @@ final class HotKeyRecorderView: NSControl {
   override var acceptsFirstResponder: Bool { true }
   override var canBecomeKeyView: Bool { true }
 
+  /// Recording follows the focus, so clicking away always ends it.
   override func becomeFirstResponder() -> Bool {
     isRecording = true
     return super.becomeFirstResponder()
@@ -88,6 +94,8 @@ final class HotKeyRecorderView: NSControl {
     if !isRecording { super.flagsChanged(with: event) }
   }
 
+  /// While recording, every key press is taken here first. Without this, a
+  /// shortcut such as Command-Q would go to the menus instead.
   override func performKeyEquivalent(with event: NSEvent) -> Bool {
     if isRecording {
       keyDown(with: event)

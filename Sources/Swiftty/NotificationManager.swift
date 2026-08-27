@@ -1,6 +1,11 @@
 import AppKit
 @preconcurrency import UserNotifications
 
+/// Sends a banner when the hidden terminal rings its bell.
+///
+/// A build script or a finished command can ring many times in a row, so bells are
+/// held down to one banner every couple of seconds. Tapping the banner brings the
+/// terminal out.
 @MainActor
 final class NotificationManager: NSObject {
 
@@ -20,6 +25,8 @@ final class NotificationManager: NSObject {
     Self.requestAuthorization(center: center)
   }
 
+  // The UserNotifications callbacks arrive on a background thread, so the calls go
+  // through `nonisolated` helpers and hop back to the main actor.
   private nonisolated static func requestAuthorization(center: UNUserNotificationCenter) {
     center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
   }
@@ -61,8 +68,11 @@ final class NotificationManager: NSObject {
   }
 }
 
+// MARK: - UNUserNotificationCenterDelegate
+
 extension NotificationManager: UNUserNotificationCenterDelegate {
 
+  /// Swiftty has no windows in front, so the banner has to be shown by hand.
   nonisolated func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
@@ -71,6 +81,7 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
     completionHandler([.banner, .sound])
   }
 
+  /// The user tapped the banner, so show the terminal.
   nonisolated func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,

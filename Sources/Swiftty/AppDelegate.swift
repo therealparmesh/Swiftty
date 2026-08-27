@@ -1,6 +1,11 @@
 import AppKit
 import HotKey
 
+/// The part in charge: it owns the menu bar item, the dropdown window, the
+/// global shortcut, and the settings window.
+///
+/// It also runs the slide animation, and hides the terminal again when you click
+/// somewhere else.
 @main
 final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
 
@@ -24,12 +29,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TerminalEventSink {
 
   // MARK: - Lifecycle
 
-  // NSApplication holds its delegate weakly.
+  /// `NSApplication` keeps only a weak reference to its delegate, so the
+  /// delegate has to be owned somewhere else.
   private static let shared = AppDelegate()
 
   static func main() {
     let app = NSApplication.shared
     app.delegate = shared
+    // `.accessory` means no Dock tile and no place in the app switcher.
     app.setActivationPolicy(.accessory)
     app.run()
   }
@@ -100,6 +107,8 @@ extension AppDelegate {
     }
   }
 
+  /// A status item with a menu attached can no longer report plain clicks, so the
+  /// menu is attached, opened, and removed again for this one right-click.
   private func presentContextMenu() {
     let menu = NSMenu()
     menu.addItem(
@@ -133,6 +142,7 @@ extension AppDelegate {
   @objc private func openSettings() {
     if settingsController == nil {
       let controller = SettingsWindowController(updater: updater)
+      // While a new shortcut is being recorded, the old one must not fire.
       controller.onRecordingChanged = { [weak self] recording in
         self?.hotKey?.isPaused = recording
       }
@@ -168,6 +178,7 @@ extension AppDelegate {
       forName: NSApplication.didChangeScreenParametersNotification,
       object: nil, queue: .main
     ) { [weak self] _ in
+      // The notification always arrives on the main thread, so no hop is needed.
       MainActor.assumeIsolated { self?.repinGeometry() }
     }
   }
@@ -203,6 +214,7 @@ extension AppDelegate {
 
   // MARK: - Preference observation
 
+  /// Each change carries a reason, so only the affected part is rebuilt.
   private func observePreferences() {
     prefsObserver = NotificationCenter.default.addObserver(
       forName: Preferences.didChange,
@@ -236,6 +248,7 @@ extension AppDelegate {
     }
   }
 
+  /// A new shell only takes effect in a new session, so the old one is thrown away.
   private func applyShellPreference() {
     let shell = Preferences.shared.resolvedShellPath
     guard shell != activeShellPath else { return }
@@ -250,6 +263,7 @@ extension AppDelegate {
 
   // MARK: - Slide animation
 
+  /// The screen the pointer is on, which is where the terminal should appear.
   private func activeScreen() -> NSScreen {
     let mouse = NSEvent.mouseLocation
     return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
@@ -310,6 +324,7 @@ extension AppDelegate {
     let end = window.retractedFrame(on: targetScreen())
 
     isAnimating = true
+    // Marked hidden up front, so a click during the animation cannot retract twice.
     window.markDeployed(false)
     NSAnimationContext.runAnimationGroup(
       { ctx in

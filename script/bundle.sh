@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 #
-# Assemble a runnable Swiftty.app from a SwiftPM build.
+# Turn the SwiftPM binary into a runnable Swiftty.app.
+#
+# The script builds the binary, copies it into an .app folder next to an
+# Info.plist and an icon, embeds Sparkle.framework, and signs the result.
 #
 # Usage:
 #   script/bundle.sh [options]
@@ -12,9 +15,9 @@
 #     --build <n>         CFBundleVersion (build number). Defaults to 0.
 #     --zip               Also produce dist/Swiftty.zip (ditto, signature-safe).
 #
-# With no --sign the app is ad-hoc signed: enough to run and be granted
-# Accessibility / Notification permissions on this machine. For a distributable
-# build, pass a Developer ID identity (the workflow does) and notarize after.
+# An ad-hoc signature is enough to run the app on this Mac and to be given
+# Accessibility and Notification permissions. To hand the app to someone else,
+# pass a Developer ID identity (the release workflow does) and notarize it after.
 #
 set -euo pipefail
 
@@ -47,7 +50,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Strip a leading "v" so a "v1.2.0" tag yields a valid CFBundleShortVersionString.
+# A tag is written as "v1.2.0", but CFBundleShortVersionString only accepts digits
+# and dots, so the leading "v" goes.
 VERSION="${VERSION#v}"
 
 if [[ -z "${VERSION}" ]]; then
@@ -101,9 +105,6 @@ if [[ -f "${REPO_ROOT}/Resources/AppIcon.icns" ]]; then
         "${APP_DIR}/Contents/Info.plist"
 fi
 
-# SwiftTerm also stages a resource bundle for its Metal renderer. Swiftty uses
-# the CoreGraphics renderer, so the bundle is not needed in the app package.
-
 # ---- Embed Sparkle.framework (autoupdater) -----------------------------------
 # SwiftPM stages Sparkle.framework next to the executable; the app finds it via
 # the @executable_path/../Frameworks rpath set in Package.swift.
@@ -129,9 +130,9 @@ else
     SIGN_ARGS+=(--options runtime --timestamp)
 fi
 
-# Sparkle bundles nested helpers (an updater app, a self-update tool, and XPC
-# services) that must be signed inside-out - deepest first, then the framework
-# that wraps them - or the outer signature is rejected as invalid.
+# Sparkle carries its own helpers inside: an updater app, a self-update tool, and
+# two XPC services. Each one is signed before the thing that contains it, or the
+# outer signature counts as broken.
 FRAMEWORK="${APP_DIR}/Contents/Frameworks/Sparkle.framework"
 if [[ -d "${FRAMEWORK}" ]]; then
     echo "> Signing Sparkle's nested helpers..."
@@ -146,7 +147,6 @@ if [[ -d "${FRAMEWORK}" ]]; then
     codesign "${SIGN_ARGS[@]}" "${FRAMEWORK}"
 fi
 
-# The app last.
 codesign "${SIGN_ARGS[@]}" "${APP_DIR}"
 
 echo "> Verifying signature..."
@@ -157,7 +157,7 @@ codesign --verify --strict --verbose=2 "${APP_DIR}"
 if [[ "${MAKE_ZIP}" == "true" ]]; then
     echo "> Creating ${ZIP_PATH}..."
     rm -f "${ZIP_PATH}"
-    # ditto is the only archiver Apple guarantees preserves bundle signatures.
+    # ditto is the one archiver Apple promises keeps a bundle signature intact.
     /usr/bin/ditto -c -k --keepParent "${APP_DIR}" "${ZIP_PATH}"
 fi
 
@@ -165,4 +165,4 @@ echo ""
 echo "OK Built ${APP_DIR} (v${VERSION}, build ${BUILD_NUMBER})"
 [[ "${MAKE_ZIP}" == "true" ]] && echo "OK Zipped ${ZIP_PATH}"
 echo "  Run it with:  open \"${APP_DIR}\""
-echo "  Look for the terminal icon in your menu bar (no Dock tile - it's an agent)."
+echo "  Look for the terminal icon in your menu bar. There is no Dock tile."

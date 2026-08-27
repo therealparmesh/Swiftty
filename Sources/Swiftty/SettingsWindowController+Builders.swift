@@ -1,5 +1,7 @@
 import AppKit
 
+// MARK: - Control builders
+
 extension SettingsWindowController {
 
   func section(_ title: String, _ views: [NSView]) -> NSStackView {
@@ -15,6 +17,8 @@ extension SettingsWindowController {
 
     for view in views {
       view.leadingAnchor.constraint(equalTo: stack.leadingAnchor).isActive = true
+      // A stretched checkbox has a click target as wide as the window, so only the
+      // other controls are pinned on both sides.
       let isCheckbox = view is NSButton && !(view is NSPopUpButton)
       if !isCheckbox {
         view.trailingAnchor.constraint(equalTo: stack.trailingAnchor).isActive = true
