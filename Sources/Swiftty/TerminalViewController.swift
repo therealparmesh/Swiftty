@@ -1,6 +1,7 @@
 import AppKit
 import SwiftTerm
 
+/// The jobs the terminal cannot do on its own, passed up to `AppDelegate`.
 @MainActor
 protocol TerminalEventSink: AnyObject {
   func terminalDidRingBell()
@@ -9,6 +10,7 @@ protocol TerminalEventSink: AnyObject {
   func terminalDidRequestFontSizeReset()
 }
 
+/// The shortcuts Swiftty answers itself, instead of sending the keys to the shell.
 enum TerminalKeyCommand: Equatable {
   case copy
   case paste
@@ -31,6 +33,8 @@ enum TerminalKeyCommand: Equatable {
     "0": .resetFontSize
   ]
 
+  // A keyboard reports the same physical key as "=" or "+" depending on Shift, so
+  // both spellings map to the same command.
   private static let shiftedCommandShortcuts: [String: TerminalKeyCommand] = [
     "r": .resetSession,
     "+": .increaseFontSize,
@@ -39,6 +43,7 @@ enum TerminalKeyCommand: Equatable {
     "-": .decreaseFontSize
   ]
 
+  /// Returns the matching command, or `nil` when the keys belong to the shell.
   static func resolve(
     key: String?,
     modifiers: NSEvent.ModifierFlags,
@@ -50,6 +55,7 @@ enum TerminalKeyCommand: Equatable {
     guard let key else { return nil }
 
     if modifiers == [.command] {
+      // With nothing selected, Command-C is not a copy, so the shell gets it.
       if key == "c" { return selectionActive ? .copy : nil }
       return commandShortcuts[key]
     }
@@ -62,6 +68,10 @@ enum TerminalKeyCommand: Equatable {
   }
 }
 
+/// SwiftTerm's terminal view, plus Swiftty's shortcuts and right-click menu.
+///
+/// It reports what happens through closures, so it needs to know nothing about
+/// the rest of the app.
 final class SwifttyTerminalView: LocalProcessTerminalView {
 
   var onBell: (() -> Void)?
@@ -108,6 +118,7 @@ final class SwifttyTerminalView: LocalProcessTerminalView {
 
   override func menu(for event: NSEvent) -> NSMenu? {
     let menu = NSMenu()
+    // Copy and Paste are switched on by hand, so AppKit must not touch them.
     menu.autoenablesItems = false
 
     let copyItem = NSMenuItem(title: "Copy", action: #selector(copy(_:)), keyEquivalent: "c")
@@ -171,6 +182,7 @@ final class SwifttyTerminalView: LocalProcessTerminalView {
   @objc private func menuResetFontSize() { onResetFontSize?() }
 }
 
+/// Holds the terminal view and keeps a login shell alive inside it.
 final class TerminalViewController: NSViewController {
 
   private(set) var terminalView: SwifttyTerminalView!
@@ -252,6 +264,8 @@ final class TerminalViewController: NSViewController {
 
   // MARK: - Shell lifecycle
 
+  /// A shell that dies at once, again and again, would restart forever, so give up
+  /// after three tries and wait for the user.
   private func restartShell() {
     fastExitCount = Date().timeIntervalSince(shellStartedAt) < 1 ? fastExitCount + 1 : 0
     guard fastExitCount < 3 else {
@@ -264,6 +278,9 @@ final class TerminalViewController: NSViewController {
   }
 
   /// Call this once the view has its real size, so the shell starts with the right window size.
+  ///
+  /// The environment is fixed up first: a GUI app inherits almost nothing from
+  /// launchd, so `TERM`, colors, language, `PATH`, and `SHELL` are all set here.
   func startShell() {
     shellStartedAt = Date()
     let shell = Preferences.shared.resolvedShellPath
@@ -283,6 +300,8 @@ final class TerminalViewController: NSViewController {
       executable: shell,
       args: [],
       environment: env,
+      // The leading dash is how a shell is told it is a login shell, so it reads
+      // the profile files the user expects.
       execName: "-\(shellName)",
       currentDirectory: NSHomeDirectory()
     )
@@ -296,6 +315,8 @@ final class TerminalViewController: NSViewController {
     return id.isEmpty ? "en_US.UTF-8" : "\(id).UTF-8"
   }
 
+  /// Homebrew and the system directories go first, because the `PATH` a launched
+  /// app inherits is often almost empty.
   private func robustPath() -> String {
     let inherited =
       ProcessInfo.processInfo.environment["PATH"]?
@@ -319,6 +340,11 @@ final class TerminalViewController: NSViewController {
 
   // MARK: - Buffer / session
 
+  /// Wipes the screen and the scrollback, then asks the shell to draw its prompt
+  /// again.
+  ///
+  /// A full-screen program such as `vim` owns the screen, so it only gets the
+  /// redraw and keeps its own content.
   func clearBuffer() {
     if terminalView.getTerminal().isCurrentBufferAlternate {
       terminalView.send(txt: "\u{0c}")
@@ -330,6 +356,7 @@ final class TerminalViewController: NSViewController {
 
   func resetSession() {
     guard !isResetting else { return }
+    // The flag stops the exit callback from starting a second shell.
     isResetting = true
     fastExitCount = 0
 

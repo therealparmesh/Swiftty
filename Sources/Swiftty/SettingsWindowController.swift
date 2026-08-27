@@ -1,6 +1,10 @@
 import AppKit
 import HotKey
 
+/// The settings window.
+///
+/// Every control writes straight into `Preferences` and reads back from it. The
+/// window keeps no settings of its own.
 @MainActor
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
@@ -117,6 +121,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     configureControls()
 
     var generalControls: [NSView] = [launchAtLoginCheckbox, loginStatusLabel]
+    // Without a real app bundle there is no updater, so the checkbox is left out.
     if updater != nil {
       generalControls.insert(autoUpdateCheckbox, at: 1)
     }
@@ -181,6 +186,7 @@ extension SettingsWindowController {
 
   // MARK: - Sync
 
+  /// Copies every value out of `Preferences`, so the window never keeps a stale one.
   func syncFromPreferences() {
     let prefs = Preferences.shared
     updateLoginStatus()
@@ -199,6 +205,8 @@ extension SettingsWindowController {
     showValidationResult(.valid, committed: true)
   }
 
+  /// Only the font size can change from outside this window, with Command-plus or
+  /// Command-minus in the terminal.
   private func observePreferences() {
     preferencesObserver = NotificationCenter.default.addObserver(
       forName: Preferences.didChange,
@@ -220,6 +228,8 @@ extension SettingsWindowController {
     updateFontSizeLabel(size)
   }
 
+  // Row 0 of both popups is "use the system choice", so a list index is one lower
+  // than the row that shows it.
   private func rebuildShellPopup(selected: String?) {
     shellPopup.removeAllItems()
     let systemDefault = Preferences.systemLoginShell()
@@ -255,6 +265,7 @@ extension SettingsWindowController {
 
   // MARK: - Actions
 
+  /// A bad shortcut is not saved: the box goes back to the old one and says why.
   private func handleRecorded(_ combo: KeyCombo) {
     let result = HotKeyValidator.validate(combo)
     switch result {
@@ -278,6 +289,8 @@ extension SettingsWindowController {
     }
   }
 
+  /// macOS owns the login item, so the checkbox is set from the system state, not
+  /// from the click.
   private func updateLoginStatus(message: String? = nil) {
     launchAtLoginCheckbox.state = LoginItem.isEnabled ? .on : .off
     defer { resizeToFit() }
@@ -368,6 +381,7 @@ extension SettingsWindowController {
     stopRecording()
   }
 
+  /// Recording must stop with the window, or the global shortcut stays paused.
   private func stopRecording() {
     if window?.firstResponder === recorder {
       window?.makeFirstResponder(nil)

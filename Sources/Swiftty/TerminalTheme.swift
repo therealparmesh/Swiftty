@@ -1,6 +1,7 @@
 import AppKit
 import SwiftTerm
 
+/// One set of colors for the terminal and for the settings window.
 struct TerminalTheme {
 
   let background: NSColor
@@ -13,6 +14,7 @@ struct TerminalTheme {
   let accent: NSColor
   let dim: NSColor
 
+  /// The 16 terminal colors: 0 to 7 normal, 8 to 15 bright.
   let ansi: [SwiftTerm.Color]
 
   static var tokyoNight: TerminalTheme {
@@ -46,6 +48,8 @@ struct TerminalTheme {
   }
 }
 
+// MARK: - Hex colors
+
 extension NSColor {
   convenience init(hex: Int) {
     self.init(
@@ -58,6 +62,8 @@ extension NSColor {
 }
 
 extension SwiftTerm.Color {
+  /// SwiftTerm counts each channel from 0 to 65535, so 257 turns a 0-255 byte into
+  /// the same shade.
   convenience init(hex: Int) {
     self.init(
       red: UInt16((hex >> 16) & 0xFF) * 257,

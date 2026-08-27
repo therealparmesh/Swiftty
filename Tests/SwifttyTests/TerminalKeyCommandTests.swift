@@ -2,26 +2,27 @@ import AppKit
 import XCTest
 @testable import Swiftty
 
+/// Checks which key presses Swiftty answers itself, and which ones reach the shell.
 final class TerminalKeyCommandTests: XCTestCase {
 
-  func testFontSizeShortcuts() {
+  func testFontSizeShortcutsAreRecognized() {
     XCTAssertEqual(resolve("+", [.command, .shift]), .increaseFontSize)
     XCTAssertEqual(resolve("=", [.command, .shift]), .increaseFontSize)
     XCTAssertEqual(resolve("-", [.command]), .decreaseFontSize)
     XCTAssertEqual(resolve("0", [.command]), .resetFontSize)
   }
 
-  func testUnrelatedModifierFlagsDoNotBlockShortcuts() {
+  func testKeysLikeCapsLockDoNotSpoilAShortcut() {
     XCTAssertEqual(resolve("-", [.command, .capsLock]), .decreaseFontSize)
     XCTAssertEqual(resolve("+", [.command, .shift, .numericPad]), .increaseFontSize)
   }
 
-  func testCopyRequiresSelection() {
+  func testCopyOnlyWorksWhenTextIsSelected() {
     XCTAssertNil(resolve("c", [.command], selectionActive: false))
     XCTAssertEqual(resolve("c", [.command], selectionActive: true), .copy)
   }
 
-  func testUnrecognizedShortcutPassesThrough() {
+  func testUnknownShortcutsAreLeftForTheShell() {
     XCTAssertNil(resolve("x", [.command]))
     XCTAssertNil(resolve("+", [.option]))
   }

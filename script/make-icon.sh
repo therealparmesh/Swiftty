@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 #
-# Generate Resources/AppIcon.icns without checking a binary asset into the repo.
+# Draw Resources/AppIcon.icns, so no image file has to live in the repo.
 #
-# Idempotent: skips rendering if AppIcon.icns already exists and --force is not
-# given.
+# The script writes a small Swift program to a temporary file, runs it to paint
+# one PNG per icon size, and packs the set with iconutil.
+#
+# Usage:
+#   script/make-icon.sh [--force]
+#
+# It does nothing if the icon already exists. Pass --force to draw it again.
 #
 set -euo pipefail
 
@@ -105,7 +110,7 @@ func renderIcon(size: Int, to url: URL) {
 }
 
 let outDir = URL(fileURLWithPath: CommandLine.arguments[1])
-// (point size, scale) -> filename, per Apple's iconset naming.
+// Apple wants one file per point size and per scale, named exactly like this.
 let specs: [(Int, Int)] = [(16,1),(16,2),(32,1),(32,2),(128,1),(128,2),(256,1),(256,2),(512,1),(512,2)]
 for (pt, scale) in specs {
     let px = pt * scale

@@ -30,6 +30,9 @@ let package = Package(
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ],
+            // SwiftPM builds a plain binary, so two things are added by hand:
+            // the Info.plist is baked into the binary, which lets it run outside
+            // a bundle, and the rpaths let the bundled app find Sparkle.framework.
             linkerSettings: [
                 .unsafeFlags([
                     "-Xlinker", "-sectcreate",

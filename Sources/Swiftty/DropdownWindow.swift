@@ -1,5 +1,9 @@
 import AppKit
 
+/// The frosted panel that slides down from the top of the screen.
+///
+/// It has no title bar and no buttons. It knows two positions: parked above the
+/// screen, and open under the menu bar. `AppDelegate` animates between them.
 final class DropdownWindow: NSWindow {
 
   let visualEffectView: NSVisualEffectView
@@ -32,6 +36,7 @@ final class DropdownWindow: NSWindow {
 
   // MARK: - Key/Main eligibility
 
+  /// A borderless window refuses the keyboard until it says otherwise.
   override var canBecomeKey: Bool { true }
   override var canBecomeMain: Bool { true }
 
@@ -51,6 +56,8 @@ final class DropdownWindow: NSWindow {
 
     level = .floating
 
+    // Follow the user to every Space, stay put over full-screen apps, and stay
+    // out of Command-Tab.
     collectionBehavior = [
       .canJoinAllSpaces,
       .fullScreenAuxiliary,
@@ -61,6 +68,7 @@ final class DropdownWindow: NSWindow {
     isReleasedWhenClosed = false
     hidesOnDeactivate = false
     isRestorable = false
+    // The slide is animated by hand, so AppKit must not add its own animation.
     animationBehavior = .none
     isMovable = false
   }
@@ -71,6 +79,7 @@ final class DropdownWindow: NSWindow {
 
     let radius: CGFloat = 12
     content.layer?.cornerRadius = radius
+    // Only the bottom corners are ever on screen, so only those are rounded.
     content.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
     content.layer?.masksToBounds = true
 
@@ -88,6 +97,11 @@ final class DropdownWindow: NSWindow {
     )
   }
 
+  /// The open position: the full width of the screen, hanging from the bottom of
+  /// the menu bar.
+  ///
+  /// The width comes from the whole screen, but the height comes from the part
+  /// the menu bar and the Dock leave free.
   static func deployedFrame(
     fullFrame: NSRect,
     visibleFrame: NSRect,
@@ -102,6 +116,7 @@ final class DropdownWindow: NSWindow {
     )
   }
 
+  /// The parked position: the same size, but pushed above the top edge.
   func retractedFrame(on screen: NSScreen) -> NSRect {
     var frame = deployedFrame(on: screen)
     frame.origin.y = screen.frame.maxY
